@@ -69,7 +69,7 @@
 
 <script>
     // 🔴 DÁN URL APPS SCRIPT CỦA BẠN VÀO ĐÂY
-    const API_URL = "https://script.google.com/macros/s/AKfycbyEBfoi5WxKZdpK1rzE-b0RvhUiImMRK32z1Ivz6ielDDaGFXDJnYocUZUryy-_qQPO/exec"; 
+    const API_URL = "https://script.google.com/macros/s/AKfycbxm0sYhfr7o2zH0N08fT8xfyI3lHnf94oELWG8uNifUA8uKjIAXPfqO7if71MSPfEG9/exec"; 
     
     let dbNhanSu = [];
     let dbCauHoi = [];
@@ -193,18 +193,18 @@ function sendToGoogle(payload, textTómTắtZalo) {
         .then(res => res.json())
         .then(res => {
             if(res.result === "success") {
-                // Tự động viết hoa các tiêu đề câu hỏi động từ hệ thống để đồng bộ thẩm mỹ
-                let textDongVietHoa = textTómTắtZalo.replace(/• ([^:]+):/g, function(match, p1) {
-                    return `• ${p1.toUpperCase()}:`;
-                });
+                // Tiêu đề đầu tiên: VIẾT HOA VÀ IN ĐẬM bằng dấu *
+                let tieuDeBocLua = "*🔥 CHIẾN BINH LAN TỎA MỤC TIÊU 🔥*";
+                
+                // Tên nhân sự: Giữ nguyên chữ viết thường của hệ thống nhưng IN ĐẬM bằng dấu *
+                let nhanSuInDam = `• Nhân sự: *${payload.thongTinNhanSu}*`;
 
-                // Cấu trúc lại nội dung bài đăng bốc lửa, viết hoa nhấn mạnh
-                let textFinal = `🔥 CHIẾN BINH LAN TỎA MỤC TIÊU 🔥\n\n` +
-                                `👤 NHÂN SỰ: ${payload.thongTinNhanSu.toUpperCase()}\n` +
-                                `📍 VÙNG/ĐỊA ĐIỂM: ${payload.diaDiemLamViec.toUpperCase()}\n` +
-                                textDongVietHoa + 
-                                `\n🚀 EM VỪA HOÀN THÀNH BÁO CÁO HOẠT ĐỘNG!\n` +
-                                `💪 ĐỒNG ĐỘI CÙNG TĂNG TỐC QUYẾT TÂM ĐẠT MỤC TIÊU NHÉ! ✨🏆✨`;
+                // Cấu trúc lại nội dung bài đăng Zalo theo đúng ý bạn
+                let textFinal = `${tieuDeBocLua}\n\n` +
+                                `${nhanSuInDam}\n` +
+                                `• Vùng/Địa điểm: ${payload.diaDiemLamViec}\n` +
+                                textTómTắtZalo + 
+                                `\n🚀 Em vừa hoàn thành báo cáo hoạt động! Đồng đội cùng tăng tốc nhé! 💪✨`;
                                 
                 document.getElementById("shareContent").innerText = textFinal;
                 document.getElementById("formContainer").style.display = "none";
