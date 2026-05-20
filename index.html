@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Cổng Thông Tin Hoạt Động Chạm</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; background-color: #f4f6f9; color: #333; padding: 12px; line-height: 1.4; }
+        .container { width: 100%; max-width: 480px; background: #ffffff; margin: 0 auto 15px auto; padding: 22px 16px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        h2 { text-align: center; color: #0f2c59; margin-bottom: 20px; font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group { margin-bottom: 16px; position: relative; }
+        label { font-weight: 600; color: #2c3e50; display: block; margin-bottom: 6px; font-size: 14px; }
+        input, select, textarea { width: 100%; padding: 14px 12px; border: 1px solid #cdd6e2; border-radius: 10px; font-size: 15px; background-color: #ffffff; color: #333; transition: all 0.2s; -webkit-appearance: none; appearance: none; }
+        select { background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path fill='%23666' d='M0 0l5 5 5-5z'/></svg>"); background-repeat: no-repeat; background-position: right 14px center; background-size: 12px; padding-right: 35px; }
+        input:focus, select:focus, textarea:focus { border-color: #0068ff; outline: none; box-shadow: 0 0 0 3px rgba(0,104,255,0.15); }
+        input[readonly] { background-color: #f1f3f7; color: #666; cursor: not-allowed; border-color: #dbdfe6; }
+        
+        /* Bộ gợi ý Search Autocomplete thông minh */
+        .search-results { position: absolute; width: 100%; background: white; border: 1px solid #cdd6e2; border-top: none; border-radius: 0 0 10px 10px; max-height: 200px; overflow-y: auto; z-index: 1000; box-shadow: 0 4px 8px rgba(0,0,0,0.1); display: none; }
+        .search-item { padding: 12px; cursor: pointer; font-size: 14px; border-bottom: 1px solid #f1f3f7; }
+        .search-item:hover, .search-item:active { background-color: #e6f0ff; }
+        
+        .btn-submit { background: #0f2c59; color: white; border: none; padding: 16px; width: 100%; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-submit:disabled { background: #a5b4fc; cursor: not-allowed; }
+        .success-card { text-align: center; padding: 10px 5px; }
+        .success-card h3 { color: #1e7e34; font-size: 22px; margin-bottom: 12px; }
+        .preview-box { background: #f8f9fa; border: 1px dashed #cdd6e2; padding: 14px; border-radius: 10px; text-align: left; font-size: 14px; white-space: pre-line; margin: 18px 0; max-height: 180px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+        .btn-zalo { background: #0068ff; color: white; text-align: center; border: none; padding: 16px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; width: 100%; display: block; text-decoration: none; box-sizing: border-box; }
+        .loading { text-align: center; color: #666; font-size: 14px; font-style: italic; display: none; margin-top: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container" id="formContainer">
+    <h2>BÀN TAY VÀNG - 1 CÚ CHẠM VẠN ĐƠN HÀNG</h2>
+    <form id="dynamicForm" autocomplete="off">
+        
+        <div class="form-group">
+            <label>Tìm kiếm Nhân sự (Gõ Tên hoặc Mã số)</label>
+            <input type="text" id="searchNhanSu" placeholder="Nhập tên hoặc mã để tìm..." required oninput="onSearchInput()">
+            <div class="search-results" id="searchResults"></div>
+            <input type="hidden" id="thongTinNhanSu" required>
+        </div>
+
+        <div class="form-group">
+            <label>Địa điểm làm việc</label>
+            <input type="text" id="diaDiemLamViec" readonly placeholder="Hệ thống tự động tra cứu...">
+        </div>
+
+        <div id="dynamicQuestionsArea"></div>
+
+        <button type="submit" class="btn-submit" id="btnSubmit">GỬI THÔNG TIN</button>
+        <div class="loading" id="loadingText">⏳ Đang trong quá trình lưu trữ, vui lòng đợi...</div>
+    </form>
+</div>
+
+<div class="container" id="successContainer" style="display:none;">
+    <div class="success-card">
+        <h3>🎉 GHI NHẬN THÀNH CÔNG! 🎉</h3>
+        <p style="font-size: 15px; color: #666;">Dữ liệu đã lưu trữ thành công.</p>
+        <p style="font-weight: bold; color: #d9383a; margin-top: 5px; font-size: 14px;">Bấm nút dưới đây để Khoe kết quả lên Zalo:</p>
+        
+        <div class="preview-box" id="shareContent"></div>
+        
+        <button class="btn-zalo" onclick="copyAndOpenZalo()">🚀 KHOE KẾT QUẢ LÊN ZALO</button>
+    </div>
+</div>
+
+<script>
+    // 🔴 DÁN URL APPS SCRIPT CỦA BẠN VÀO ĐÂY
+    const API_URL = "https://script.google.com/macros/s/AKfycbyEBfoi5WxKZdpK1rzE-b0RvhUiImMRK32z1Ivz6ielDDaGFXDJnYocUZUryy-_qQPO/exec"; 
+    
+    let dbNhanSu = [];
+    let dbCauHoi = [];
+
+    // Tự động tải cấu trúc từ Sheets khi mở Web
+    window.onload = function() {
+        fetch(API_URL)
+        .then(res => res.json())
+        .then(data => {
+            dbNhanSu = data.nhan_su;
+            dbCauHoi = data.cau_hool;
+            
+            // Vẽ bộ câu hỏi động
+            let area = document.getElementById("dynamicQuestionsArea");
+            area.innerHTML = "";
+            dbCauHoi.forEach(ch => {
+                let block = `<div class="form-group"><label>${ch.tieuDe}</label>`;
+                if(ch.loai === "text") {
+                    block += `<input type="text" data-title="${ch.tieuDe}" required placeholder="Nhập câu trả lời...">`;
+                } else if(ch.loai === "textarea") {
+                    block += `<textarea data-title="${ch.tieuDe}" rows="3" required placeholder="Nhập nội dung chia sẻ..."></textarea>`;
+                } else if(ch.loai === "select") {
+                    block += `<select data-title="${ch.tieuDe}" required><option value="">-- Chọn đáp án --</option>`;
+                    ch.tuyChon.forEach(o => block += `<option value="${o}">${o}</option>`);
+                    block += `</select>`;
+                } else if(ch.loai === "file") {
+                    block += `<input type="file" id="fileAnhDong" data-title="${ch.tieuDe}" accept="image/*">`;
+                }
+                block += `</div>`;
+                area.innerHTML += block;
+            });
+            document.getElementById("searchNhanSu").placeholder = "Gõ tên hoặc mã nhân sự...";
+        }).catch(err => alert("Lỗi kết nối dữ liệu nguồn!"));
+    };
+
+    // Xử lý bộ lọc tìm kiếm thông minh
+    function onSearchInput() {
+        let keyword = document.getElementById("searchNhanSu").value.toLowerCase().trim();
+        let resContainer = document.getElementById("searchResults");
+        resContainer.innerHTML = "";
+        
+        if(keyword.length < 2) { resContainer.style.display = "none"; return; }
+        
+        let filtered = dbNhanSu.filter(ns => ns.thongTinNS.toLowerCase().includes(keyword));
+        
+        if(filtered.length > 0) {
+            filtered.slice(0, 5).forEach(ns => { // Hiển thị tối đa 5 gợi ý sát nhất
+                let item = document.createElement("div");
+                item.className = "search-item";
+                item.innerText = ns.thongTinNS;
+                item.onclick = function() {
+                    document.getElementById("searchNhanSu").value = ns.thongTinNS;
+                    document.getElementById("thongTinNhanSu").value = ns.thongTinNS;
+                    document.getElementById("diaDiemLamViec").value = ns.diaDiem;
+                    resContainer.style.display = "none";
+                };
+                resContainer.appendChild(item);
+            });
+            resContainer.style.display = "block";
+        } else {
+            resContainer.style.display = "none";
+        }
+    }
+
+    // Đóng bộ gợi ý tìm kiếm khi click ra ngoài vùng ô nhập
+    document.addEventListener("click", function(e) {
+        if(e.target.id !== "searchNhanSu") { document.getElementById("searchResults").style.display = "none"; }
+    });
+
+    document.getElementById("dynamicForm").addEventListener("submit", function(e) {
+        e.preventDefault();
+        
+        // Kiểm tra tính hợp lệ của ô tìm kiếm nhân sự
+        if(!document.getElementById("thongTinNhanSu").value || document.getElementById("searchNhanSu").value !== document.getElementById("thongTinNhanSu").value) {
+            alert("Vui lòng gõ và CHỌN chính xác nhân sự từ danh sách gợi ý!");
+            return;
+        }
+
+        document.getElementById("btnSubmit").disabled = true;
+        document.getElementById("loadingText").style.display = "block";
+
+        let cauHoiDongData = {};
+        let textTómTắtZalo = "";
+        
+        let inputs = document.getElementById("dynamicQuestionsArea").querySelectorAll("input, select, textarea");
+        inputs.forEach(input => {
+            let tieuDeCH = input.getAttribute("data-title");
+            let val = input.value;
+            if(input.type === "file") {
+                cauHoiDongData[tieuDeCH] = "[FILE_ANH]";
+            } else {
+                cauHoiDongData[tieuDeCH] = val;
+                textTómTắtZalo += `• ${tieuDeCH}: ${val}\n`;
+            }
+        });
+
+        let payload = {
+            thongTinNhanSu: document.getElementById("thongTinNhanSu").value,
+            diaDiemLamViec: document.getElementById("diaDiemLamViec").value,
+            cauHoiDong: cauHoiDongData
+        };
+
+        let fileElement = document.getElementById("fileAnhDong");
+        let fileInput = fileElement ? fileElement.files[0] : null;
+        
+        if (fileInput) {
+            let reader = new FileReader();
+            reader.readAsDataURL(fileInput);
+            reader.onload = function () {
+                payload.imageBuffer = reader.result;
+                payload.imageName = fileInput.name;
+                sendToGoogle(payload, textTómTắtZalo);
+            };
+        } else {
+            sendToGoogle(payload, textTómTắtZalo);
+        }
+    });
+
+    function sendToGoogle(payload, textTómTắtZalo) {
+        fetch(API_URL, { method: "POST", body: JSON.stringify(payload) })
+        .then(res => res.json())
+        .then(res => {
+            if(res.result === "success") {
+                let textFinal = `🔥 CHIẾN BINH LAN TỎA MỤC TIÊU 🔥\n` +
+                                `• Nhân sự: ${payload.thongTinNhanSu}\n` +
+                                `• Vùng/Địa điểm: ${payload.diaDiemLamViec}\n` +
+                                textTómTắtZalo + 
+                                `\n🚀 Em vừa hoàn thành báo cáo hoạt động! Đồng đội cùng tăng tốc nhé! 💪✨`;
+                                
+                document.getElementById("shareContent").innerText = textFinal;
+                document.getElementById("formContainer").style.display = "none";
+                document.getElementById("successContainer").style.display = "block";
+            } else {
+                alert("Hệ thống bận hoặc phát sinh lỗi: " + res.error);
+                document.getElementById("btnSubmit").disabled = false;
+                document.getElementById("loadingText").style.display = "none";
+            }
+        });
+    }
+
+    function copyAndOpenZalo() {
+        let text = document.getElementById("shareContent").innerText;
+        navigator.clipboard.writeText(text).then(function() {
+            alert("Đã tự động SAO CHÉP nội dung thi đua thành công! Hãy dán (Paste) vào group Zalo chung nhé.");
+            window.location.href = "zalo://";
+        }).catch(function() {
+            alert("Hãy nhấn giữ phần văn bản khung xám để copy thủ công và dán sang Zalo!");
+        });
+    }
+</script>
+</body>
+</html>
